@@ -7,7 +7,6 @@ Created on Tue Aug 26 10:30:33 2014
 
 
 import sys
-import time
 import datetime 
 
 #try:
@@ -50,7 +49,7 @@ class Editions(object):
     BSCI  = {'collection' : 'WOS', 'edition' : 'BSCI'}   #Book Citation Index - Science
     BHCI  = {'collection' : 'WOS', 'edition' : 'BHCI'}   #Book Citation Index - Social Sciences and Humanities
    
-class SortFields(object):        
+class SortField(object):        
     def __init__(self):
         self.name="RS"
         self.descending=True
@@ -80,7 +79,7 @@ class SortFields(object):
              
     
 class QueryParameters(object):
-    def __init__(self, query, timeSpan = None, editions = None):
+    def __init__(self, query=None, timeSpan = None, editions = None):
         self.queryLanguage = 'en'
         self.databaseId = 'WOS'
         self.timeSpan = timeSpan
@@ -107,11 +106,18 @@ class QueryParameters(object):
         return wokquery
 
 class RetrieveParameters(object):   
-    def __init__(self, firstRecord = 1, count = 100, sortField = [], viewField = [], option=[]):
+    def __init__(self, firstRecord = 1, count = 100, sortField = None, viewField = [], option=[]):
         self.firstRecord = firstRecord
         self.count = count
         self.sortField = sortField
+        self.viewField = viewField
         self.option = option
+        
+    def wok(self):
+        wokRetrieveParam = {'firstRecord' : self.firstRecord, 'count' : self.count}
+        if self.sortField is not None:
+            wokRetrieveParam['sortField'] = self.sortField.wok()
+        return wokRetrieveParam
     
     
 class WokAuth(object):
@@ -196,23 +202,46 @@ class WokSearch(object):
     def __init__(self,identifier):
         self.client = Client(self.URL, headers= { 'Cookie': 'SID='+identifier})
         
-    def queryParameters(self):
-        print self.client.factory.create('viewField')
+    def search(self,query,retrieveParam):
+        return self.client.service.search(query.wok(), retrieveParam.wok())
         
+class Wok3(object):
+    def __init__(self):
+        self.authClient = WokAuth()
+        self.identifier = self.authClient.authenticate()
+        self.searchClient = WokSearch(self.identifier) 
+        self.queryParam = QueryParameters() 
+        self.retrieveParam = RetrieveParameters()
+        
+    def addAuthorQuery(self,query):
+        self.queryParam.userQuery = 'AU=' + query
+        
+    def getQuery(self):
+        return self.queryParam.userQuery
     
+    def search(self):
+        self.searchClient.search(self.queryParam,self.retrieveParam)    
         
 
 def main():
     
-    query = QueryParameters("AU = Strupler") 
-    print query.wok()
-    auth = WokAuth()
-    identifier = auth.authenticate()
-    search = WokSearch(identifier)
-    print search.queryParameters()
-    auth.closeSession()
+#    query = QueryParameters("AU = Strupler") 
+#    retrieveParam = RetrieveParameters(1,100)
+#    retrieveParam.sortField = SortField()
+#    retrieveParam.sortField.sortbyTimeCited()
+#    print query.wok()
+#    print retrieveParam.wok()
+#
+#    auth = WokAuth()
+#    identifier = auth.authenticate()
+#    search = WokSearch(identifier)
+#    print search.search(query,retrieveParam)
+#    auth.closeSession()
  
-
+     wok3 = Wok3()
+     wok3.addAuthorQuery('Strupler')
+     print wok3.getQuery()
+     print wok3.search()
 
      
 if __name__ == "__main__":
