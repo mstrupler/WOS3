@@ -21,6 +21,8 @@ except ImportError:
     print('We need suds, sorry...')
     sys.exit(1)    
     
+
+    
 class TimeSpan(object):
     def __init__(self, begin = None, end = datetime.date.today()):
         self.begin = begin
