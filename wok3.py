@@ -37,7 +37,18 @@ class Edition(object):
     CCR   = {'collection' : 'WOS', 'edition' : 'CCR'}    #Current Chemical Reactions
     BSCI  = {'collection' : 'WOS', 'edition' : 'BSCI'}   #Book Citation Index - Science
     BHCI  = {'collection' : 'WOS', 'edition' : 'BHCI'}   #Book Citation Index - Social Sciences and Humanities
-   
+ 
+class ViewField(object):
+    def __init__(self):
+        self._title= True
+        self._name= True
+    def toSoap(self):
+        soap = {'collectionName' : 'WOS'}
+        soap['fieldName'] = []
+        if self._title : soap['fieldName'].append('title')
+        if self._name : soap['fieldName'].append('name')
+        print soap
+        return soap
 
 class WokSearch(object):
     def __init__(self):
@@ -48,6 +59,9 @@ class WokSearch(object):
         self._timeSpanEnd = None
         self._edition = None
         self._query = None
+        self._resultsRetrieved = 0
+        self._resultsPerRequest = 100
+        self._viewField = ViewField()
     
     def setQuery(self, query):
         self._query = query
@@ -68,7 +82,7 @@ class WokSearch(object):
         self._timeSpanStart = None
         self._timeSpanEnd = None
         
-    def toSOAP(self):
+    def queryToSOAP(self):
         if self._query is not None:
             soap =  {'databaseId' : self._databaseId, 'userQuery' : self._query, 'queryLanguage': self._queryLanguage}
             if self._edition is not None:
@@ -83,16 +97,21 @@ class WokSearch(object):
             return soap
         else:
             raise SearchQueryError
+    
+    def retrieveParamToSOAP(self):
+        soap = {'firstRecord' : self._resultsRetrieved+1, 'count' : self._resultsPerRequest, 'viewfield' : self._viewField.toSoap()}
+        return soap
         
 def main():
     wokSearch = WokSearch()
     
     wokSearch.setQuery('AU = (Strupler AND Boudoux)')
-    print wokSearch.toSOAP()
+   
     wokSearch.setEdition(Edition.SCI)
     wokSearch.setTimeSpanEnd(datetime.date(2010,01,01))
     wokSearch.setTimeSpanStart(datetime.date(2003,01,01))
-    
+    print wokSearch.queryToSOAP()
+    print wokSearch.retrieveParamToSOAP()
     
 if __name__ == "__main__":
     sys.exit(main())    
