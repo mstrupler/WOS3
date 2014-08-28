@@ -133,45 +133,45 @@ class SearchRespAnalyzer(object):
             reparsed.writexml(fp, indent="", addindent="\t", newl="\n")
     
     def saveAsBibtex(self,directory):
-       # bibtexentry = '@article={%(bibref)s,' + '\n' \
-       #     + ' title={%(title)s},' + '\n' \
-       #     + ' author={%(authors)s},' + '\n' \
-       #     + ' journal={%(journal)s},' + '\n' \
-       #     + ' volume={%(volume)s},' + '\n' \
-       #     + ' number={%(number)s},' + '\n' \
-       #     + ' pages={%(pages)s},' + '\n' \
-       #     + ' year={%(year)s},' + '\n' \
-       #     + ' publisher={%(publisher)s}' + '\n' + '}\n'
-            
-        #bibstring = ''
+
         searchRespDict = self.toDict()
-        for rec in searchRespDict['records']:
-            
-            bibtexentry = '@article={'
-            bibtexentry = bibtexentry + rec['UID'] + '\n' 
-            bibtexentry = bibtexentry + '  title={' + rec['title'] + '},\n'
-            
-            authors = ''
-            authorlist = rec['authors']
-            firstauthor = authorlist.pop(0)
-            authors = firstauthor
-            for author in authorlist:
-                authors = authors + ' and ' + author
+        with open(directory, 'w') as fp:
+            for rec in searchRespDict['records']:
+                if rec['docType'][0]=='Article' or rec['docType'][0]=='Review' or rec['docType'][0]=='Letter':
+                    bibtexentry = '@article{'
+                elif rec['docType'][0]=='Proceedings Paper' or rec['docType'][0]=='Meeting':
+                    bibtexentry = '@proceedings{'
+                elif rec['docType'][0]=='Book':
+                    bibtexentry = '@book{'
+                elif rec['docType'][0]=='Book Chapter':
+                    bibtexentry = '@inbook{'
+                else:
+                    bibtexentry = '@misc{'
+                bibtexentry = bibtexentry + rec['UID'] + ',\n' 
+                bibtexentry = bibtexentry + '  title={' + rec['title'] + '},\n'
                 
-            bibtexentry = bibtexentry + '  author={' + authors + '},\n'
-            bibtexentry = bibtexentry + '  journal={' + rec['journal'] + '},\n'
-            if not(rec['volume']==''):
-                bibtexentry = bibtexentry + '  volume={' + rec['volume'] + '},\n'
-            if not(rec['issue']==''):
-                bibtexentry = bibtexentry + '  number={' + rec['issue'] + '},\n'
-            if rec['page']:
-                bibtexentry = bibtexentry + '  pages={'  + rec['page'][0] + '--' + rec['page'][1] + '},\n'
-            if not(rec['year']==''):
-                bibtexentry = bibtexentry + '  year={' + rec['year'] + '},\n'
-            if not(rec['publisher']==''):
-                bibtexentry = bibtexentry + '  publisher={' + rec['publisher'] + '},\n'
-            bibtexentry = bibtexentry  + '}\n'
-            print bibtexentry 
+                authors = ''
+                authorlist = rec['authors']
+                firstauthor = authorlist.pop(0)
+                authors = firstauthor
+                for author in authorlist:
+                    authors = authors + ' and ' + author
+                    
+                bibtexentry = bibtexentry + '  author={' + authors + '},\n'
+                bibtexentry = bibtexentry + '  journal={' + rec['journal'] + '},\n'
+                if not(rec['volume']==''):
+                    bibtexentry = bibtexentry + '  volume={' + rec['volume'] + '},\n'
+                if not(rec['issue']==''):
+                    bibtexentry = bibtexentry + '  number={' + rec['issue'] + '},\n'
+                if rec['page']:
+                    bibtexentry = bibtexentry + '  pages={'  + rec['page'][0] + '--' + rec['page'][1] + '},\n'
+                if not(rec['year']==''):
+                    bibtexentry = bibtexentry + '  year={' + rec['year'] + '},\n'
+                if not(rec['publisher']==''):
+                    bibtexentry = bibtexentry + '  publisher={' + rec['publisher'] + '},\n'
+                bibtexentry = bibtexentry  + '}\n'
+                fp.write(bibtexentry)
+            
         
         
    
@@ -249,7 +249,7 @@ class WokSearch(object):
 def main():
     wokSearch = WokSearch()
     
-    wokSearch.setQuery('AU = Strupler')
+    wokSearch.setQuery('TS = Optical Coherence Tomography')
    
     #wokSearch.setEdition(Edition.SCI)
     wokSearch.setTimeSpanEnd(datetime.date(2014,01,01))
@@ -260,9 +260,9 @@ def main():
     wokSearch.openSOAPsession()
     resp = wokSearch.sendSearchRequest()
     aResp = SearchRespAnalyzer(resp)
-    aResp.saveRawAsXML('/Users/mathiasstrupler/WOS3/strupler2003_2010.xml')
-    aResp.saveAsJSON('/Users/mathiasstrupler/WOS3/strupler2003_2010.JSON')
-    aResp.saveAsBibtex('/Users/mathiasstrupler/WOS3/strupler2003_2010.bib')
+    aResp.saveRawAsXML('/Users/mathiasstrupler/WOS3/OCT2003_2010.xml')
+    aResp.saveAsJSON('/Users/mathiasstrupler/WOS3/OCT2003_2010.JSON')
+    aResp.saveAsBibtex('/Users/mathiasstrupler/WOS3/OCT2003_2010.bib')
     wokSearch.closeSOAPsession()
     
 if __name__ == "__main__":
