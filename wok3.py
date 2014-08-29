@@ -71,9 +71,8 @@ class SearchRespAnalyzer(object):
             volume : Volume
             issue : Issue
             page : page [begin, end]
-            authors : list of authors
+            authors : list of author dict {name, dais_id, affiliations list}
             language : primary language of the document
-            adresses : list of affiliations
             docType : document type (article, review, book,...)
             publisher : name of the publisher
         """  
@@ -118,7 +117,8 @@ class SearchRespAnalyzer(object):
                     elif name.find('full_name') is not None:
                         author['name'] = name.find('full_name').text
                     if 'dais_id' in name.attrib:
-                        author['dais_id'] = name.attrib['dais_id']   
+                        author['dais_id'] = name.attrib['dais_id'] 
+                    author['affiliation']=[]
                     record['authors'].append(author)
             #retrieve publication language
             record['language'] = None
@@ -126,10 +126,24 @@ class SearchRespAnalyzer(object):
                 if language.attrib['type']=='primary':
                     record['language'] = language.text
             #retrieve adressess
-            record['adresses'] = []
-            for adresses in rec.findall('static_data/fullrecord_metadata/addresses'):
-                if not(adresses.attrib['count'] == '0'):
-                    record['adresses'].append(adresses.find('address_name/address_spec/full_address').text)
+            affiliations = []
+            for adresses in rec.findall('static_data/fullrecord_metadata/addresses/address_name'):
+                affiliations.append({'nb' : adresses.find('address_spec').attrib['addr_no'],'add' : adresses.find('address_spec/full_address').text})
+            record['affiliations'] = affiliations
+            if len(affiliations)==1:
+                for author in record['authors']:
+                    author['affiliation']=[affiliations[0]['add']]
+            if len(affiliations)>=1:
+                aff_names = rec.findall('static_data/fullrecord_metadata/addresses/address_name/names/name')
+                aff_names_list = []                
+                for aff_name in aff_names:
+                    tmp = {'nb' : aff_name.attrib['addr_no'], 'name' : aff_name.find('wos_standard').text}
+                    aff_names_list.append(tmp)    
+                for author in record['authors']:
+                    for name in aff_names_list:
+                        if author['name'] == name['name']:                            
+                            author['affiliation'].append(name['nb'])
+                                    
             #retrieve doctype
             record['docType'] = []
             for docType in rec.findall('static_data/fullrecord_metadata/normalized_doctypes/doctype'):
@@ -195,7 +209,6 @@ class SearchRespAnalyzer(object):
                 authors = ''
                 authorlist = rec['authors']
                 firstauthor = authorlist.pop(0)
-                print firstauthor
                 authors = firstauthor['name']
                 for author in authorlist:
                     authors = authors + ' and ' + author['name']
