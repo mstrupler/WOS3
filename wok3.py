@@ -34,7 +34,12 @@ class Error(Exception):
 class SearchQueryError(Error):
     """You need to set a user query"""
 
-class Edition(object):        
+class Edition(object):    
+    """
+    This class is only used to let you know easily all the databases 
+    that can be searched in World of sciences
+    example : wokSearch.setEdition(Edition.SCI)
+    """    
     SCI   = {'collection' : 'WOS', 'edition' : 'SCI'}    #Science Citation Index Expanded
     SSCI  = {'collection' : 'WOS', 'edition' : 'SSCI'}   #Social Sciences Citation Index
     AHCI  = {'collection' : 'WOS', 'edition' : 'AHCI'}   #Arts & Humanities Citation Index
@@ -45,18 +50,35 @@ class Edition(object):
     BSCI  = {'collection' : 'WOS', 'edition' : 'BSCI'}   #Book Citation Index - Science
     BHCI  = {'collection' : 'WOS', 'edition' : 'BHCI'}   #Book Citation Index - Social Sciences and Humanities
  
-class FieldsSelector(object):
-    def __init__(self):
-        self._title= True
-        self._name= True
         
 class SearchRespAnalyzer(object): 
-    
+    """
+    This class is used to parse the soap answer received 
+    after a search request
+    """    
     def __init__(self,searchResp):
         self._searchResp = searchResp
     
     def toDict(self):
-        ans = {'queryID' : self._searchResp.queryId, 'recordsFound' : self._searchResp.recordsFound, 'records' : [] }
+        """
+        This method parse the answer into a dictonnary
+        It does not retreive all the information that gives WOS 
+        It looks for the following info:
+            UID : WOS identifier
+            title : Title of the document
+            journal : Name of the journal 
+            year : Year of publication
+            volume : Volume
+            issue : Issue
+            page : page [begin, end]
+            authors : list of authors
+            language : primary language of the document
+            adresses : list of affiliations
+            docType : document type (article, review, book,...)
+            publisher : name of the publisher
+        """  
+        
+        ans = {'records' : [] }
         records = re.sub(' xmlns="http://scientific.thomsonreuters.com/schema/wok5.4/public/FullRecord"', '', self._searchResp.records, count=1)
         #records = re.sub(' r_id_disclaimer="ResearcherID data provided by Thomson Reuters"', '', resp.records, count=resp.recordsFound)
         recordsTree = ET.fromstring( records)
@@ -88,7 +110,16 @@ class SearchRespAnalyzer(object):
             record['authors'] = []
             for name in rec.findall('static_data/summary/names/name'):
                 if name.attrib['role']=='author':
-                    record['authors'].append(name.find('wos_standard').text)
+                    author = {'name' : ''}
+                    if name.find('wos_standard') is not None:
+                        author['name'] = name.find('wos_standard').text
+                    elif name.find('display_name') is not None:
+                        author['name'] = name.find('display_name').text
+                    elif name.find('full_name') is not None:
+                        author['name'] = name.find('full_name').text
+                    if 'dais_id' in name.attrib:
+                        author['dais_id'] = name.attrib['dais_id']   
+                    record['authors'].append(author)
             #retrieve publication language
             record['language'] = None
             for language in rec.findall('static_data/fullrecord_metadata/languages/language'):    
@@ -111,6 +142,10 @@ class SearchRespAnalyzer(object):
         return ans
 
     def saveAsJSON(self,directory):
+        """
+        This method save as a JSON file 
+        the dictionnary produced by the toDict() method
+        """   
         try:
             import json
         except ImportError:
@@ -122,18 +157,25 @@ class SearchRespAnalyzer(object):
             json.dump(searchRespDict , fp, sort_keys=True, indent=4, separators=(',', ': '))
             
     def saveRawAsXML(self,directory):
+        """
+        This method save as a XML file the raw records 
+        returned by the WOS search
+        It only adds identations to make it more pretty
+        """  
         from xml.dom import minidom
         records = re.sub(' xmlns="http://scientific.thomsonreuters.com/schema/wok5.4/public/FullRecord"', '', self._searchResp.records, count=1)
         #records = re.sub(' r_id_disclaimer="ResearcherID data provided by Thomson Reuters"', '', resp.records, count=resp.recordsFound)
         recordsTree = ET.fromstring( records)
         rough_string = ET.tostring(recordsTree, 'utf-8')
         reparsed = minidom.parseString(rough_string)
-        reparsed.toprettyxml(indent="  ")
         with open(directory, 'wb') as fp:
             reparsed.writexml(fp, indent="", addindent="\t", newl="\n")
     
     def saveAsBibtex(self,directory):
-
+        """
+        This method save as a bibtex files all the records
+        It should be rewritten better handle different document types 
+        """  
         searchRespDict = self.toDict()
         with open(directory, 'w') as fp:
             for rec in searchRespDict['records']:
@@ -153,9 +195,10 @@ class SearchRespAnalyzer(object):
                 authors = ''
                 authorlist = rec['authors']
                 firstauthor = authorlist.pop(0)
-                authors = firstauthor
+                print firstauthor
+                authors = firstauthor['name']
                 for author in authorlist:
-                    authors = authors + ' and ' + author
+                    authors = authors + ' and ' + author['name']
                     
                 bibtexentry = bibtexentry + '  author={' + authors + '},\n'
                 bibtexentry = bibtexentry + '  journal={' + rec['journal'] + '},\n'
@@ -177,6 +220,14 @@ class SearchRespAnalyzer(object):
    
 
 class WokSearch(object):
+    """
+    This class is used 
+        - to define the query parameters of a WOK search 
+        - open a session on WOK 
+        - send requests
+        - close the session
+    
+    """
     AUTH_URL = 'http://search.webofknowledge.com/esti/wokmws/ws/WOKMWSAuthenticate?wsdl'
     SEARCH_URL = 'http://search.webofknowledge.com/esti/wokmws/ws/WokSearch?wsdl'
     def __init__(self):
