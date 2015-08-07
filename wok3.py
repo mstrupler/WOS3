@@ -56,10 +56,48 @@ class SearchRespAnalyzer(object):
     This class is used to parse the soap answer received 
     after a search request
     """    
-    def __init__(self,searchResp):
-        self._searchResp = searchResp
+    def __init__(self,searchResp= None):
+        if searchResp == None:
+            self._respList = []
+            self._rawResp = None
+            self._querryId = 0
+            self._recordsRetrieved = 0
+            self._recordsFound = 0
+            self._recordsSearched = 0
+        else:
+            self._respList = self.toList(searchResp)
+            self._rawResp = searchResp
+            self._querryId = searchResp.queryId
+            self._recordsRetrieved = len(self._respList)
+            self._recordsFound = searchResp.recordsFound
+            self._recordsSearched = searchResp.recordsSearched
+            
+        
+    def getNbRecordsFound(self):
+        """
+        This methods return the number of matching records found
+        """
+        return self._recordsFound
+        
+    def getNbRecordsRetrieved(self):
+        """
+        This methods return the number of retrieved records found
+        """
+        return self._recordsRetrieved
+        
+    def getRecordsDict(self):
+        """
+        This methods return a dictionnary containning all the records retreived by the search
+        """
+        return {'records':self._respList}
+        
+    def getRecordsList(self):
+        """
+        This methods return a dictionnary containning all the records retreived by the search
+        """
+        return self._respList
     
-    def toDict(self):
+    def toList(self,searchResp):
         """
         This method parse the answer into a dictonnary
         It does not retreive all the information that gives WOS 
@@ -77,15 +115,9 @@ class SearchRespAnalyzer(object):
             publisher : name of the publisher
         """  
 
-        ans = {'records' : [] ,  'metadata':{}}
+        ans = []
         
-       
-        ans['metadata']['queryId'] = self._searchResp.queryId
-        ans['metadata']['recordsFound'] = self._searchResp.recordsFound
-        ans['metadata']['recordsSearched'] = self._searchResp.recordsSearched
-            
-
-        records = re.sub(' xmlns="http://scientific.thomsonreuters.com/schema/wok5.4/public/FullRecord"', '', self._searchResp.records, count=1)
+        records = re.sub(' xmlns="http://scientific.thomsonreuters.com/schema/wok5.4/public/FullRecord"', '', searchResp.records, count=1)
  
         #records = re.sub(' r_id_disclaimer="ResearcherID data provided by Thomson Reuters"', '', resp.records, count=resp.recordsFound)
         recordsTree = ET.fromstring( records)
@@ -160,7 +192,7 @@ class SearchRespAnalyzer(object):
             record['publisher'] = rec.find('static_data/summary/publishers/publisher/names/name/full_name').text
             
             #append record to answer
-            ans['records'].append(record)
+            ans.append(record)
         return ans
 
     def saveAsJSON(self,directory):
@@ -174,9 +206,9 @@ class SearchRespAnalyzer(object):
             print('We need JSON, sorry...')
             sys.exit(1)  
         
-        searchRespDict = self.toDict()
+        respDict = {'records':self._respList}
         with open(directory, 'wb') as fp:
-            json.dump(searchRespDict , fp, sort_keys=True, indent=4, separators=(',', ': '))
+            json.dump(respDict , fp, sort_keys=True, indent=4, separators=(',', ': '))
             
     def saveRawAsXML(self,directory):
         """
@@ -185,7 +217,7 @@ class SearchRespAnalyzer(object):
         It only adds identations to make it more pretty
         """  
         from xml.dom import minidom
-        records = re.sub(' xmlns="http://scientific.thomsonreuters.com/schema/wok5.4/public/FullRecord"', '', self._searchResp.records, count=1)
+        records = re.sub(' xmlns="http://scientific.thomsonreuters.com/schema/wok5.4/public/FullRecord"', '', self._rawResp.records, count=1)
         #records = re.sub(' r_id_disclaimer="ResearcherID data provided by Thomson Reuters"', '', resp.records, count=resp.recordsFound)
         recordsTree = ET.fromstring( records)
         rough_string = ET.tostring(recordsTree, 'utf-8')
@@ -198,9 +230,9 @@ class SearchRespAnalyzer(object):
         This method save as a bibtex files all the records
         It should be rewritten better handle different document types 
         """  
-        searchRespDict = self.toDict()
+        
         with open(directory, 'w') as fp:
-            for rec in searchRespDict['records']:
+            for rec in self._respList:
                 if rec['docType'][0]=='Article' or rec['docType'][0]=='Review' or rec['docType'][0]=='Letter':
                     bibtexentry = '@article{'
                 elif rec['docType'][0]=='Proceedings Paper' or rec['docType'][0]=='Meeting':
@@ -314,15 +346,16 @@ class WokSearch(object):
     def sendSearchRequest(self):
         resp = self._searchClient.factory.create('searchResponse')
         resp = self._searchClient.service.search(self.queryToSOAP(),self.retrieveParamToSOAP())
-        return resp        
+        analyzedResp = SearchRespAnalyzer(resp)
+        return analyzedResp        
         
             
         
 def main():
     wokSearch = WokSearch()
     
-    #wokSearch.setQuery('TS = Optical Coherence Tomography')
-    wokSearch.setQuery('AU = Strupler M*')
+    wokSearch.setQuery('TS = Optical Coherence Tomography')
+    #wokSearch.setQuery('AU = Strupler M*')
     #wokSearch.setEdition(Edition.SCI)
     wokSearch.setTimeSpanEnd(datetime.date(2014,01,01))
     wokSearch.setTimeSpanStart(datetime.date(2003,01,01))
@@ -331,11 +364,11 @@ def main():
     
     wokSearch.openSOAPsession()
     resp = wokSearch.sendSearchRequest()
-    aResp = SearchRespAnalyzer(resp)
-#    aResp.toDict()
-    #aResp.saveRawAsXML('/Users/mathiasstrupler/WOS3/OCT2003_2010.xml')
-    aResp.saveAsJSON('/Users/mathiasstrupler/WOS3/OCT2003_2010.JSON')
-    #aResp.saveAsBibtex('/Users/mathiasstrupler/WOS3/OCT2003_2010.bib')
+    print 'Search found ', resp.getNbRecordsFound(), ' matching records'
+    print 'Search retrieved ', resp.getNbRecordsRetrieved(), ' records'
+    resp.saveAsJSON('/Users/mathiasstrupler/WOS3/OCT2003_2010.JSON')
+    resp.saveRawAsXML('/Users/mathiasstrupler/WOS3/OCT2003_2010.xml')
+    resp.saveAsBibtex('/Users/mathiasstrupler/WOS3/OCT2003_2010.bib')
     wokSearch.closeSOAPsession()
     
 if __name__ == "__main__":
