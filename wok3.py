@@ -76,9 +76,17 @@ class SearchRespAnalyzer(object):
             docType : document type (article, review, book,...)
             publisher : name of the publisher
         """  
+
+        ans = {'records' : [] ,  'metadata':{}}
         
-        ans = {'records' : [] }
+       
+        ans['metadata']['queryId'] = self._searchResp.queryId
+        ans['metadata']['recordsFound'] = self._searchResp.recordsFound
+        ans['metadata']['recordsSearched'] = self._searchResp.recordsSearched
+            
+
         records = re.sub(' xmlns="http://scientific.thomsonreuters.com/schema/wok5.4/public/FullRecord"', '', self._searchResp.records, count=1)
+ 
         #records = re.sub(' r_id_disclaimer="ResearcherID data provided by Thomson Reuters"', '', resp.records, count=resp.recordsFound)
         recordsTree = ET.fromstring( records)
         for rec in recordsTree.iter('REC'):
@@ -284,7 +292,7 @@ class WokSearch(object):
             if self._timeSpanEnd is not None:
                 soaptime['end'] = self._timeSpanEnd.isoformat()
             if soaptime :    
-                soap['timeSpan'] = soaptime     
+                soap['timeSpan'] = soaptime    
             return soap
         else:
             raise SearchQueryError
@@ -313,8 +321,8 @@ class WokSearch(object):
 def main():
     wokSearch = WokSearch()
     
-    wokSearch.setQuery('TS = Optical Coherence Tomography')
-   
+    #wokSearch.setQuery('TS = Optical Coherence Tomography')
+    wokSearch.setQuery('AU = Strupler M*')
     #wokSearch.setEdition(Edition.SCI)
     wokSearch.setTimeSpanEnd(datetime.date(2014,01,01))
     wokSearch.setTimeSpanStart(datetime.date(2003,01,01))
@@ -324,9 +332,10 @@ def main():
     wokSearch.openSOAPsession()
     resp = wokSearch.sendSearchRequest()
     aResp = SearchRespAnalyzer(resp)
-    aResp.saveRawAsXML('/Users/mathiasstrupler/WOS3/OCT2003_2010.xml')
+#    aResp.toDict()
+    #aResp.saveRawAsXML('/Users/mathiasstrupler/WOS3/OCT2003_2010.xml')
     aResp.saveAsJSON('/Users/mathiasstrupler/WOS3/OCT2003_2010.JSON')
-    aResp.saveAsBibtex('/Users/mathiasstrupler/WOS3/OCT2003_2010.bib')
+    #aResp.saveAsBibtex('/Users/mathiasstrupler/WOS3/OCT2003_2010.bib')
     wokSearch.closeSOAPsession()
     
 if __name__ == "__main__":
