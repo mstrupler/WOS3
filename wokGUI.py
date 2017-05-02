@@ -1,39 +1,53 @@
 import sys
-from PyQt4 import QtGui, QtCore
+from PyQt4 import QtCore, QtGui, uic
+import wok3
 
-class Example(QtGui.QWidget):
-    
+qtCreatorFile = "easyWok3.ui" # Enter file here.
+
+Ui_MainWindow, QtBaseClass = uic.loadUiType(qtCreatorFile)
+
+class MyApp(QtGui.QMainWindow, Ui_MainWindow):
     def __init__(self):
-        super(Example, self).__init__()
+        QtGui.QMainWindow.__init__(self)
+        Ui_MainWindow.__init__(self)
+        self.setupUi(self)
+        self.pSearch.clicked.connect(self.search)
+        self.pStop.clicked.connect(self.stop)
+        self.eTopic.editingFinished.connect(self.setQuerryTopic)
         
-        self.initUI()
-        
-    def initUI(self):      
-
-        self.lbl = QtGui.QLabel(self)
-        qle = QtGui.QLineEdit(self)
-        
-        qle.move(60, 100)
-        self.lbl.move(60, 40)
-
-        qle.textChanged[str].connect(self.onChanged)
-        
-        self.setGeometry(300, 300, 280, 170)
-        self.setWindowTitle('QtGui.QLineEdit')
-        self.show()
-        
-    def onChanged(self, text):
-        
-        self.lbl.setText(text)
-        self.lbl.adjustSize()        
-        
-        
-def main():
+        with open('proxy.txt', 'r') as fp:
+            proxySettings = {}
+            proxySettings['login'] = fp.readline()[:-1]
+            proxySettings['password'] = fp.readline()[:-1]
+            proxySettings['server'] = fp.readline()[:-1]
+            proxySettings['port'] = fp.readline()
     
+        self.wokSearch = wok3.WokSearch(proxy=dict(http='http://'+proxySettings['login']+':'+proxySettings['password']+'@'+proxySettings['server']+':'+proxySettings['port']))
+        self.wokSearch.openSOAPsession()
+        
+    def setQuerryTopic(self):
+        self.wokSearch.setQuery('TS = '+self.eTopic.text())
+        
+    def closeEvent(self, event):
+        self.wokSearch.closeSOAPsession()
+        
+    def search(self):
+        self.querryResp = self.wokSearch.sendSearchRequest()
+        self.lRetrieved.setText(str(self.querryResp.getNbRecordsRetrieved()) + '/' +str(self.querryResp.getNbRecordsFound()))
+        
+    def stop(self):
+        print 'stop'
+
+class SearchThread(QtCore.QThread):
+    def __init__(self):
+        QtCore.QThread.__init__(self)
+ 
+    def run(self):
+        print 1+1        
+        return
+
+if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
-    ex = Example()
+    window = MyApp()
+    window.show()
     sys.exit(app.exec_())
-
-
-if __name__ == '__main__':
-    main()
