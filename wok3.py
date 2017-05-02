@@ -287,6 +287,32 @@ class WokSearch(object):
     """
     AUTH_URL = 'http://search.webofknowledge.com/esti/wokmws/ws/WOKMWSAuthenticate?wsdl'
     SEARCH_URL = 'http://search.webofknowledge.com/esti/wokmws/ws/WokSearch?wsdl'
+    CRITERIA = {'Address':'AD',\
+                'Author':'AU',\
+                'Conference':'CF',\
+                'City':'CI',\
+                'Country':'CU',\
+                'DOI':'DO',\
+                'Editor':'ED',\
+                'Grant number':'FG',\
+                'Funding agency':'FO',\
+                'Funding Text':'FT',\
+                'Group Author':'GP',\
+                'ISSN/ISBN':'IS',\
+                'Organization - Enhanced':'OG',\
+                'Organization':'OO',\
+                'Province/State':'PS',\
+                'Year published':'Py',\
+                'Researcher ID':'RID',\
+                'Street address':'SA',\
+                'Suborganization':'SG',\
+                'Publication name':'SO',\
+                'Research area':'SU',\
+                'Title':'TI',\
+                'Topic':'TS',\
+                'Accession number':'UT',\
+                'Web of science category':'WC',\
+                'Zip/Postal Code':'ZP'}
     def __init__(self,**kwargs):
         #initialization
         self._queryLanguage = 'en'

@@ -9,156 +9,119 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>228</width>
-    <height>242</height>
+    <width>725</width>
+    <height>384</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="verticalLayoutWidget">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <widget class="QWidget" name="gridLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>10</y>
-      <width>208</width>
-      <height>188</height>
+      <x>19</x>
+      <y>0</y>
+      <width>691</width>
+      <height>341</height>
      </rect>
     </property>
-    <layout class="QVBoxLayout" name="verticalLayout">
-     <item>
-      <widget class="QComboBox" name="comboBox">
-       <item>
-        <property name="text">
-         <string>Topic</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Title</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Author</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Conference</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Country</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Organization</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Publication Name</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Editor</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Province/State</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>City</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Funding Agency</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>DOI</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>ResearcherID</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Research Area</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Web of Science Category</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Zip/Postal Code</string>
-        </property>
-       </item>
-      </widget>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="1">
+      <widget class="QTableView" name="tvResults"/>
      </item>
-     <item>
-      <widget class="QLineEdit" name="eTopic">
-       <property name="text">
-        <string>blabla</string>
+     <item row="0" column="0">
+      <layout class="QVBoxLayout" name="vlSearch">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetDefaultConstraint</enum>
        </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="Line" name="line_2">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
-        <widget class="QPushButton" name="pSearch">
+        <layout class="QFormLayout" name="flCriteria">
+         <property name="fieldGrowthPolicy">
+          <enum>QFormLayout::FieldsStayAtSizeHint</enum>
+         </property>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pAddCriteria">
          <property name="text">
-          <string>Start</string>
+          <string>add Criteria</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <item>
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>Published from </string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="leYearStart"/>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>to</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="leYearEnd"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="Line" name="line_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pSearchOnce">
+         <property name="text">
+          <string>Search once</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pSearchAll">
+         <property name="text">
+          <string>Search all</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="pStop">
          <property name="text">
-          <string>Stop</string>
+          <string>Pause Search</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QProgressBar" name="pbRetrieved">
+         <property name="value">
+          <number>24</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="lRetrieved">
+         <property name="text">
+          <string>0/0 retrieved</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
       </layout>
-     </item>
-     <item>
-      <widget class="QProgressBar" name="pbRetrieved">
-       <property name="value">
-        <number>24</number>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="lRetrieved">
-       <property name="text">
-        <string>0/0 retrieved</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
      </item>
     </layout>
    </widget>
@@ -168,7 +131,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>228</width>
+     <width>725</width>
      <height>22</height>
     </rect>
    </property>
