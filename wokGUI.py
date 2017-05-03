@@ -12,13 +12,15 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
         self.pSearchOnce.clicked.connect(self.search)
-        self.pStop.clicked.connect(self.stop)
+        self.pSearchAll.clicked.connect(self.searchAll)
+   
         self.criteriaNb = 0
         self.pAddCriteria.clicked.connect(self.addCriteria)
         
         self.criteriaList = []
         self.addCriteria()
         
+        self.createQuery()
         
         with open('proxy.txt', 'r') as fp:
             proxySettings = {}
@@ -34,20 +36,22 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
     def closeEvent(self, event):
         self.wokSearch.closeSOAPsession()
         
-    def search(self):
-        searchQuerry = ''
+    def createQuery(self):
+        self.searchQuery = ''
         for (cbCriteria,leCriteria) in self.criteriaList:
-            searchQuerry += wok3.WokSearch.CRITERIA[cbCriteria.currentText()]
-            searchQuerry += '=('
-            searchQuerry += leCriteria.text()
-            searchQuerry += ') AND '
-        searchQuerry = searchQuerry[:-5]
-        print searchQuerry
-        self.wokSearch.setQuery(searchQuerry)
-        self.querryResp = self.wokSearch.sendSearchRequest()
-        self.lRetrieved.setText(str(self.querryResp.getNbRecordsRetrieved()) + '/' +str(self.querryResp.getNbRecordsFound()))
+            self.searchQuery += wok3.WokSearch.CRITERIA[cbCriteria.currentText()]
+            self.searchQuery += '=('
+            self.searchQuery += leCriteria.text()
+            self.searchQuery += ') AND '
+        self.searchQuery = self.searchQuery[:-5]
+        self.lSearchQuery.setText('Query: '+ self.searchQuery)
+        
+    def search(self):
+        self.wokSearch.setQuery(self.searchQuery)
+        self.queryResp = self.wokSearch.sendSearchRequest()
+        self.lRetrieved.setText(str(self.queryResp.getNbRecordsRetrieved()) + '/' +str(self.queryResp.getNbRecordsFound()))
 
-        resultList = self.querryResp.toList()
+        resultList = self.queryResp.toList()
         if resultList:
             row = len(resultList)
             model = QtGui.QStandardItemModel(row,4)
@@ -67,25 +71,59 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
                 
             self.tvResults.setModel(model)
         
-    def stop(self):
-        print 'stop'
+
         
     def addCriteria(self):
         cbCriteria = QtGui.QComboBox()
-        cbCriteria.addItems(wok3.WokSearch.CRITERIA.keys())
+        cbCriteria.addItems(list(wok3.WokSearch.CRITERIA))
         leCriteria = QtGui.QLineEdit()
         self.criteriaList.append((cbCriteria,leCriteria))
         self.flCriteria.addRow(cbCriteria,leCriteria) 
-        self.centralwidget.setLayout(self.gridLayout)
+        self.tabSearch.setLayout(self.vlSearch)
+        
+        cbCriteria.currentIndexChanged.connect(self.createQuery)
+        leCriteria.editingFinished.connect(self.createQuery)
+        
+    def searchAll(self):
+        self.wokSearch.setQuery(self.searchQuery)
+        self.queryResp = self.wokSearch.sendSearchRequest()
+        retrieved = self.queryResp.getNbRecordsRetrieved()
+        totalRetrieved = retrieved
+        totalResults = self.queryResp.getNbRecordsFound()
+        self.lRetrieved.setText(str(totalRetrieved) + '/' +str(totalResults))
+        
+        if totalResults>0:
+            resultList = self.queryResp.toList()
+            model = QtGui.QStandardItemModel(totalResults,4)
+            model.setHorizontalHeaderItem(0, QtGui.QStandardItem('Year'))
+            model.setHorizontalHeaderItem(1, QtGui.QStandardItem('Title'))
+            model.setHorizontalHeaderItem(2, QtGui.QStandardItem('Journal'))
+            model.setHorizontalHeaderItem(3, QtGui.QStandardItem('First Author'))  
+            articleNb = 0
+            for article in resultList:
+                model.setItem(articleNb,0, QtGui.QStandardItem(article['year']))
+                model.setItem(articleNb,1, QtGui.QStandardItem(article['title']))
+                model.setItem(articleNb,2, QtGui.QStandardItem(article['journal']))
+                model.setItem(articleNb,3, QtGui.QStandardItem(article['authors'][0]['name']))
+                articleNb += 1
+            print(totalRetrieved)
+            while totalRetrieved <totalResults:
+                self.wokSearch.setFirstRecord(totalRetrieved + 1)
+                self.queryResp = self.wokSearch.sendSearchRequest()
+                retrieved = self.queryResp.getNbRecordsRetrieved()
+                totalRetrieved += retrieved
+                print(totalRetrieved)
+                self.lRetrieved.setText(str(totalRetrieved) + '/' +str(totalResults))
+                if retrieved>0:
+                    resultList = self.queryResp.toList()
+                    for article in resultList:
+                        model.setItem(articleNb,0, QtGui.QStandardItem(article['year']))
+                        model.setItem(articleNb,1, QtGui.QStandardItem(article['title']))
+                        model.setItem(articleNb,2, QtGui.QStandardItem(article['journal']))
+                        model.setItem(articleNb,3, QtGui.QStandardItem(article['authors'][0]['name']))
+                        articleNb += 1
+            self.tvResults.setModel(model)
 
-
-class SearchThread(QtCore.QThread):
-    def __init__(self):
-        QtCore.QThread.__init__(self)
- 
-    def run(self):
-        print 1+1        
-        return
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)

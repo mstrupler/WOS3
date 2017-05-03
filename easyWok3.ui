@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>725</width>
-    <height>384</height>
+    <width>532</width>
+    <height>542</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,20 +20,40 @@
    <property name="enabled">
     <bool>true</bool>
    </property>
-   <widget class="QWidget" name="gridLayoutWidget">
+   <widget class="QTabWidget" name="tabWidget">
     <property name="geometry">
      <rect>
-      <x>19</x>
+      <x>0</x>
       <y>0</y>
-      <width>691</width>
-      <height>341</height>
+      <width>531</width>
+      <height>521</height>
      </rect>
     </property>
-    <layout class="QGridLayout" name="gridLayout">
-     <item row="0" column="1">
-      <widget class="QTableView" name="tvResults"/>
-     </item>
-     <item row="0" column="0">
+    <property name="tabPosition">
+     <enum>QTabWidget::North</enum>
+    </property>
+    <property name="tabShape">
+     <enum>QTabWidget::Rounded</enum>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <property name="elideMode">
+     <enum>Qt::ElideRight</enum>
+    </property>
+    <widget class="QWidget" name="tabSearch">
+     <attribute name="title">
+      <string>Search</string>
+     </attribute>
+     <widget class="QWidget" name="">
+      <property name="geometry">
+       <rect>
+        <x>5</x>
+        <y>10</y>
+        <width>511</width>
+        <height>461</height>
+       </rect>
+      </property>
       <layout class="QVBoxLayout" name="vlSearch">
        <property name="sizeConstraint">
         <enum>QLayout::SetDefaultConstraint</enum>
@@ -49,6 +69,13 @@
         <widget class="QPushButton" name="pAddCriteria">
          <property name="text">
           <string>add Criteria</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="lSearchQuery">
+         <property name="text">
+          <string>TextLabel</string>
          </property>
         </widget>
        </item>
@@ -98,20 +125,6 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pStop">
-         <property name="text">
-          <string>Pause Search</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QProgressBar" name="pbRetrieved">
-         <property name="value">
-          <number>24</number>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QLabel" name="lRetrieved">
          <property name="text">
           <string>0/0 retrieved</string>
@@ -122,8 +135,23 @@
         </widget>
        </item>
       </layout>
-     </item>
-    </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tabResults">
+     <attribute name="title">
+      <string>Results</string>
+     </attribute>
+     <widget class="QTableView" name="tvResults">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>0</y>
+        <width>511</width>
+        <height>471</height>
+       </rect>
+      </property>
+     </widget>
+    </widget>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -131,7 +159,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>725</width>
+     <width>532</width>
      <height>22</height>
     </rect>
    </property>

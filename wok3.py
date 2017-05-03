@@ -57,10 +57,23 @@ class SearchRespAnalyzer(object):
     after a search request
     """    
     def __init__(self,searchResp= None):
+        """
+        Initialization of the class 
+        @type searchResp:
+        @param searchResp: raw xml response obtained form a SOAP query 
+        """
         if searchResp == None:
             self._rawResp = None
         else:
             self._rawResp = searchResp
+        self.recordsTree = None
+        
+    def createRecordTree(self):
+        records = re.sub(' xmlns="http://scientific.thomsonreuters.com/schema/wok5.4/public/FullRecord"', '', self._rawResp.records, count=1)
+ 
+        #records = re.sub(' r_id_disclaimer="ResearcherID data provided by Thomson Reuters"', '', resp.records, count=resp.recordsFound)
+        #parser = ET.XMLParser(encoding='utf-8') 
+        self.recordsTree = ET.fromstring(records)
             
     def getQueryId(self):
         """
@@ -70,13 +83,13 @@ class SearchRespAnalyzer(object):
         
     def getNbRecordsSearched(self):
         """
-        This methods return the number of matching records found
+        This methods return the number of records searched (size of the Databas)
         """
         return self._rawResp.recordsSearched
         
     def getNbRecordsFound(self):
         """
-        This methods return the number of matching records found
+        This methods return the number of records found that satisfy this query
         """
         return self._rawResp.recordsFound
         
@@ -84,11 +97,9 @@ class SearchRespAnalyzer(object):
         """
         This methods return the number of retrieved records found
         """
-        records = re.sub(' xmlns="http://scientific.thomsonreuters.com/schema/wok5.4/public/FullRecord"', '', self._rawResp.records, count=1)
- 
-        #records = re.sub(' r_id_disclaimer="ResearcherID data provided by Thomson Reuters"', '', resp.records, count=resp.recordsFound)
-        recordsTree = ET.fromstring( records)
-        return len(recordsTree.findall('REC'))
+        if self.recordsTree is None:      
+            self.createRecordTree()
+        return len(self.recordsTree.findall('REC'))
         
     
     def toList(self):
@@ -110,12 +121,10 @@ class SearchRespAnalyzer(object):
         """  
 
         ans = []
-        
-        records = re.sub(' xmlns="http://scientific.thomsonreuters.com/schema/wok5.4/public/FullRecord"', '', self._rawResp.records, count=1)
- 
-        #records = re.sub(' r_id_disclaimer="ResearcherID data provided by Thomson Reuters"', '', resp.records, count=resp.recordsFound)
-        recordsTree = ET.fromstring( records)
-        for rec in recordsTree.iter('REC'):
+        if self.recordsTree is None:      
+            self.createRecordTree()
+            
+        for rec in self.recordsTree.iter('REC'):
             #retreive UID
             record = {'UID' : rec.find('UID').text}
             #retreive title and journal name
@@ -128,12 +137,21 @@ class SearchRespAnalyzer(object):
                     record['journal'] = title.text
             #retreive publication information 
             pubinfo = rec.find('static_data/summary/pub_info').attrib
-            record['year'] = pubinfo['pubyear']
-            record['volume'] = pubinfo['vol']
+            if 'pubyear' in pubinfo:
+                record['year'] = pubinfo['pubyear']
+            else:
+                record['year'] = ''
+                
+            if 'vol' in pubinfo:
+                record['volume'] = pubinfo['vol']
+            else:
+                record['volume'] = ''
+                
             if 'issue' in  pubinfo:
                 record['issue'] = pubinfo['issue']
             else:
                 record['issue'] = ''
+                
             page = rec.find('static_data/summary/pub_info/page').attrib
             if 'begin' in  page:
                 record['page'] = [page['begin'],page['end']]
@@ -206,26 +224,38 @@ class SearchRespAnalyzer(object):
             print('We need JSON, sorry...')
             sys.exit(1)  
         
-        with open(filename, 'wb') as fp:
+        with open(filename, 'w', encoding="utf8") as fp:
             json.dump(self.toDict() , fp, sort_keys=True, indent=4, separators=(',', ': '))
             
     def saveRawAsXML(self,filename):
         """
         This method save as a XML file the raw records 
         returned by the WOS search
-        It only adds identations to make it more pretty
+        It only adds identations to make it more prettier
         """  
-        from xml.dom import minidom
-        records = re.sub(' xmlns="http://scientific.thomsonreuters.com/schema/wok5.4/public/FullRecord"', '', self._rawResp.records, count=1)
-        #records = re.sub(' r_id_disclaimer="ResearcherID data provided by Thomson Reuters"', '', resp.records, count=resp.recordsFound)
-        recordsTree = ET.fromstring( records)
-        rough_string = ET.tostring(recordsTree, 'utf-8')
-        reparsed = minidom.parseString(rough_string)
-        with open(filename, 'wb') as fp:
-            reparsed.writexml(fp, indent="", addindent="\t", newl="\n")
+        
+        #from xml.dom import minidom
+
+        if self.recordsTree is None:      
+            self.createRecordTree()
+        tree = ET.ElementTree(self.recordsTree)   
+        with open(filename, 'w', encoding='utf-8') as file:
+            tree.write(file, encoding='unicode')
+        #rough_string = ET.tostring(self.recordsTree, 'utf-8')
+        #reparsed = minidom.parseString(rough_string)
+        #with open(filename, 'wb') as fp:
+        #    reparsed.writexml(fp, indent="", addindent="\t", newl="\n")
 
 
     def saveToStreamAsBibtex(self,outputstream):
+        """
+        This method save as a bibtex file the results list produced by the toList() method
+        Note that I reduced the docType to @article, @proceedings, @book, @inbook and @misc
+        Note that the results UID is used as citstion-key
+        Note that only the following info are kept for the bibtex entry: title, authors, journal, volume, issue, pages, year and publisher
+        
+        TODO : improve different doctype handling        
+        """  
         for rec in self.toList():
                 if rec['docType'][0]=='Article' or rec['docType'][0]=='Review' or rec['docType'][0]=='Letter':
                     bibtexentry = '@article{'
@@ -302,7 +332,7 @@ class WokSearch(object):
                 'Organization - Enhanced':'OG',\
                 'Organization':'OO',\
                 'Province/State':'PS',\
-                'Year published':'Py',\
+                'Year published':'PY',\
                 'Researcher ID':'RID',\
                 'Street address':'SA',\
                 'Suborganization':'SG',\
@@ -313,8 +343,21 @@ class WokSearch(object):
                 'Accession number':'UT',\
                 'Web of science category':'WC',\
                 'Zip/Postal Code':'ZP'}
+    SEARCH_OPERATOR = ['AND', 'OR', 'NOT', 'NEAR', 'SAME']
     def __init__(self,**kwargs):
-        #initialization
+        """
+            initialize the search to default values
+            kwargs are : 
+             - language: search language (it seems taht it can only be en foe english)
+             - database: searched database, see possible value in class Edition
+             - timeStart: defines the begining of the time range of publication dates
+             - timeEnd: defines the end of the time range
+             - edition: defines the search databases see class Edition
+             - query: the search query
+             - maxRec: maximum number of results to retrieve (max 100)
+             - firstRec : defines the record position at with the results should start (used in the case the number of results is higher than maxRec)
+             - proxy: proxy settings (http://login:password@server_url:port)
+        """
         self._queryLanguage = 'en'
         self._databaseId = 'WOS'
         self._timeSpanStart = None
@@ -345,9 +388,19 @@ class WokSearch(object):
 
     
     def setQuery(self, query):
+        """
+            Sets the query
+            @type query: String
+            @param query: The search query (ex: "TS=Mars AND rover")
+        """
         self._query = query
         
     def getQuery(self):
+        """
+            get current the query
+            @rtype : String
+            @rparam : The search query (ex: "TS=Mars AND rover")
+        """
         return self._query
         
     def setEdition(self, edition):
@@ -407,7 +460,7 @@ class WokSearch(object):
         
     def sendSearchRequest(self):
         resp = self._searchClient.factory.create('searchResponse')
-        resp = self._searchClient.service.search(self.queryToSOAP(),self.retrieveParamToSOAP())
+        resp = self._searchClient.service.search(self.queryToSOAP(),self.retrieveParamToSOAP())       
         analyzedResp = SearchRespAnalyzer(resp)
         return analyzedResp        
         
@@ -420,27 +473,28 @@ def main():
         proxySettings['password'] = fp.readline()[:-1]
         proxySettings['server'] = fp.readline()[:-1]
         proxySettings['port'] = fp.readline()
-    print proxySettings
     
     wokSearch = WokSearch(proxy=dict(http='http://'+proxySettings['login']+':'+proxySettings['password']+'@'+proxySettings['server']+':'+proxySettings['port']))
     
-    wokSearch.setQuery('TS = Optical Coherence Tomography')
-    #wokSearch.setQuery('AU = Strupler M*')
+    #wokSearch.setQuery('TS = Optical Coherence Tomography')
+    wokSearch.setQuery('AU = Bouma B*')
     #wokSearch.setEdition(Edition.SCI)
-    wokSearch.setTimeSpanEnd(datetime.date(2014,01,01))
-    wokSearch.setTimeSpanStart(datetime.date(2003,01,01))
-    wokSearch.setMaxRecords(5)
-    wokSearch.setFirstRecord(2)
-    print wokSearch.queryToSOAP()
-    print wokSearch.retrieveParamToSOAP()
+    #wokSearch.setTimeSpanEnd(datetime.date(2014,01,01))
+    #wokSearch.setTimeSpanStart(datetime.date(2003,01,01))
+    wokSearch.setMaxRecords(3)
+    wokSearch.setFirstRecord(457)
+    print(wokSearch.queryToSOAP())
+    print(wokSearch.retrieveParamToSOAP())
     
     wokSearch.openSOAPsession()
     resp = wokSearch.sendSearchRequest()
-    print 'Search found ', resp.getNbRecordsFound(), ' matching records'
-    print 'Search retrieved ', resp.getNbRecordsRetrieved(), ' records'
-    resp.saveAsJSON('/Users/mathiasstrupler/Documents/code/python/WOS3/OCT2003_2010.JSON')
-    resp.saveRawAsXML('/Users/mathiasstrupler/Documents/code/python/WOS3/OCT2003_2010.xml')
-    resp.saveToFileAsBibtex('/Users/mathiasstrupler/Documents/code/python/WOS3/OCT2003_2010.bib')
+    
+    
+    print('Search found ' + str(resp.getNbRecordsFound()) + ' matching records')
+    print('Search retrieved ' + str(resp.getNbRecordsRetrieved()) + ' records')
+    resp.saveRawAsXML('/Users/mathiasstrupler/Documents/code/python/WOS3/bouma_raw.xml')
+    resp.saveAsJSON('/Users/mathiasstrupler/Documents/code/python/WOS3/bouma.JSON')
+    resp.saveToFileAsBibtex('/Users/mathiasstrupler/Documents/code/python/WOS3/bouma.bib')
     wokSearch.closeSOAPsession()
     
 if __name__ == "__main__":
