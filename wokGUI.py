@@ -47,6 +47,8 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.lSearchQuery.setText('Query: '+ self.searchQuery)
         
     def search(self):
+        print(wokSearch.queryToSOAP())
+        print(wokSearch.retrieveParamToSOAP())
         self.wokSearch.setQuery(self.searchQuery)
         self.queryResp = self.wokSearch.sendSearchRequest()
         self.lRetrieved.setText(str(self.queryResp.getNbRecordsRetrieved()) + '/' +str(self.queryResp.getNbRecordsFound()))

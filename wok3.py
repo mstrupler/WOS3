@@ -366,6 +366,7 @@ class WokSearch(object):
         self._query = None
         self._firstRecord = 1
         self._resultsPerRequest = 100
+        self._proxySettings = None
         if kwargs is not None: 
             if 'language' in kwargs:
                 self._queryLanguage = kwargs['language']
@@ -424,6 +425,7 @@ class WokSearch(object):
         
     def setFirstRecord(self,indexOfFirstRecordToRetrieve):
         self._firstRecord = indexOfFirstRecordToRetrieve
+        
         
     def queryToSOAP(self):
         if self._query is not None:
